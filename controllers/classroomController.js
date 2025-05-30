@@ -1,5 +1,5 @@
 // Classroom logic
-const Classroom = require('../models/Classroom');
+const {Classroom} = require('../models/SchoolDb');
 
 // Get all classrooms with teacher and students populated
 exports.getAllClassrooms = async (req, res) => {

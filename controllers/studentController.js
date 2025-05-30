@@ -1,5 +1,5 @@
 // Student logic
-const Student = require('../models/Student');
+const {Student} = require('../models/SchoolDb');
 
 // Controller function to get all students
 exports.getAllStudents = async (req, res) => {

@@ -1,5 +1,5 @@
 // Assignment logic
-const Assignment = require('../models/Assignment');
+const {Assignment} = require('../models/SchoolDb');
 
 exports.getAllAssignments = async (req, res) => {
   try {

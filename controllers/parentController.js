@@ -1,6 +1,5 @@
-// Parent logic
-
-const Parent = require('../models/Parent');
+const { Parent, User } = require('../models/SchoolDb');
+const bcrypt = require('bcrypt'); 
 
 exports.getAllParents = async (req, res) => {
   try {
@@ -13,9 +12,25 @@ exports.getAllParents = async (req, res) => {
 
 exports.addParent = async (req, res) => {
   try {
+    // Step 1: Create the Parent document
     const newParent = new Parent(req.body);
     const savedParent = await newParent.save();
-    res.status(201).json(savedParent);
+
+    // Step 2: Create corresponding User
+    const defaultPassword = 'parent1234'; // You can make this dynamic later
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+
+    const newUser = new User({
+      name: savedParent.name,
+      email: savedParent.email,
+      password: hashedPassword,
+      role: 'parent',
+      parent: savedParent._id
+    });
+
+    await newUser.save();
+
+    res.status(201).json({ parent: savedParent,password:password, message: 'Parent and user account created successfully' });
   } catch (err) {
     res.status(400).json({ message: 'Error adding parent', error: err.message });
   }
