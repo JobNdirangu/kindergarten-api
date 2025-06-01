@@ -87,6 +87,9 @@ exports.deleteTeacher = async (req, res) => {
     // If no teacher found, return 404
     if (!deletedTeacher) return res.status(404).json({ message: 'Teacher not found' });
 
+    // Unassign this teacher from any classroom
+    await Classroom.updateMany({ teacher: teacherId }, { $set: { teacher: null } });
+
     // Respond with success message after deletion
     res.json({ message: 'Teacher deleted successfully' });
   } catch (err) {

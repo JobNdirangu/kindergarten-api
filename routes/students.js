@@ -8,7 +8,7 @@ const studentController = require('../controllers/studentController');
 router.get('/', studentController.getAllStudents);
 
 // POST a new student
-router.post('/', studentController.addStudent);
+router.post('/', studentController.uploadStudentPhoto, studentController.addStudent);
 
 // GET a student by ID
 router.get('/:id', studentController.getStudentById);

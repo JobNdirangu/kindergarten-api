@@ -12,6 +12,12 @@ exports.getAllParents = async (req, res) => {
 
 exports.addParent = async (req, res) => {
   try {
+    // Check if user with same email already exists
+    const existingParent = await User.findOne({ email: req.body.email });
+    if (existingParent) {
+      return res.status(400).json({ message: 'A parent with this email already exists.' });
+    }
+
     // Step 1: Create the Parent document
     const newParent = new Parent(req.body);
     const savedParent = await newParent.save();
@@ -30,7 +36,7 @@ exports.addParent = async (req, res) => {
 
     await newUser.save();
 
-    res.status(201).json({ parent: savedParent,password:password, message: 'Parent and user account created successfully' });
+    res.status(201).json({ parent: savedParent,password:defaultPassword, message: 'Parent and user account created successfully' });
   } catch (err) {
     res.status(400).json({ message: 'Error adding parent', error: err.message });
   }

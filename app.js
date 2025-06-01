@@ -1,10 +1,20 @@
 // Entry point
 const express = require('express');
 const mongoose = require('mongoose');
+const cors=require('cors')
 require('dotenv').config();
 
 const app = express();
 app.use(express.json()); // For parsing JSON request bodies
+app.use(cors());  //allow frontend to connect
+
+// This makes images accessible via URLs like: http://yourserver.com/uploads/1234567.jpg
+app.use('/uploads', express.static('uploads'));
+
+
+// Import login route and mount on /api/login
+const loginRoutes = require('./routes/login');
+app.use('/api/login', loginRoutes);
 
 // Import student routes and mount on /api/students
 const studentRoutes = require('./routes/students');

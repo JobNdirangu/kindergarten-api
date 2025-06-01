@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 // Retrieve the JWT secret from environment variables (ensure it's securely managed)
 const JWT_SECRET = process.env.JWT_SECRET;
 
-function auth(req, res, next) {
+const  auth = (req, res, next)=> {
     // Extract the Authorization header
     const authHeader = req.headers.authorization;
 
@@ -31,5 +31,19 @@ function auth(req, res, next) {
     }
 }
 
+//  Middleware to authorize access based on user role.
+//  Accepts any number of allowed roles (e.g. 'admin', 'teacher').
+//  Usage: authorizeRoles('admin', 'teacher')
+// ...params -accept any number of arguments and automatically puts them into an array.
+
+const authorizeRoles = (...allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Access denied: insufficient permissions' });
+    }
+    next();
+  };
+};
+
 // Export the auth middleware for use in other parts of the application
-module.exports = auth;
+module.exports = {auth,authorizeRoles};

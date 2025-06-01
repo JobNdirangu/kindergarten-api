@@ -1,5 +1,6 @@
 // All db  schema
 const mongoose = require('mongoose');
+const Schema=mongoose.Schema;
 
 // Define User Schema
 const userSchema = new Schema({
@@ -13,7 +14,7 @@ const userSchema = new Schema({
 }, { timestamps: true });
   
   // Teacher schema
-  const teacherSchema = new mongoose.Schema({
+  const teacherSchema = new Schema({
   name: { type: String, required: true },
   email: { type: String},
   phone:{type:String},
@@ -21,29 +22,28 @@ const userSchema = new Schema({
 }, { timestamps: true });
 
 // Classroom schema: name, assigned teacher, and students (array of references)
-const classroomSchema = new mongoose.Schema({
+const classroomSchema = new Schema({
   name: { type: String, required: true },  
   gradeLevel:{type:String},
   classYear:{type:Number},
-  teacher: { type: mongoose.Schema.Types.ObjectId, ref: 'Teacher' }, 
-  students: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }]
+  teacher: { type: mongoose.Schema.Types.ObjectId, ref: 'Teacher', default:null}, 
+  students: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' , default:null}]
 }, { timestamps: true });
 
 // Parent Schema
-const parentSchema = new mongoose.Schema({
+const parentSchema = new Schema({
   name: { type: String, required: true },
   email:{ type: String },
   phone: { type: String, required: true },
-  address:{type:String},
-  children: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Student' }]
-  
+  nationalId: { type: String, required: true, unique: true },
+  address:{type:String}  
 }, { timestamps: true });
 
 
 // Student schema 
-const studentSchema = new mongoose.Schema({
-  name: { type: String, required: true },          // Student's full name
-  dateOfBirth: { type: Date, required: true },      // Student's dob
+const studentSchema = new Schema({
+  name: { type: String, required: true },          
+  dateOfBirth: { type: Date, required: true },      
   gender:{type:String},
   photo: {type:String},
   admissionNumber: { type: String, unique: true },
@@ -52,7 +52,7 @@ const studentSchema = new mongoose.Schema({
 }, { timestamps: true }); 
 
 // Assignment Schema
-const assignmentSchema = new mongoose.Schema({
+const assignmentSchema = new Schema({
   title: { type: String, required: true },
   description: {type:String},
   dueDate: {type:Date},

@@ -22,7 +22,7 @@ exports.login = async (req, res) => {
     // 3. Compare the provided password with the hashed password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(401).json({ message: 'Invalid password' });
     }
 
     // 4. Generate JWT token (useful for real apps)
@@ -47,4 +47,38 @@ exports.login = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: 'Login failed', error: err.message });
   }
+};
+
+
+// controller
+exports.registerAdmin = async (req, res) => {
+  const { name, email, password, secretKey } = req.body;
+
+  // 1. Verify developer's secret key
+  if (secretKey !== process.env.ADMIN_SECRET_KEY) {
+    return res.status(403).json({ message: 'Unauthorized access' });
+  }
+
+  // 2. Check if user already exists
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    return res.status(400).json({ message: 'User with this email already exists' });
+  }
+
+  // 3. Create admin user
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const newUser = new User({
+    name,
+    email,
+    password: hashedPassword,
+    role: 'admin',
+    isActive: true,
+    teacher: null,
+    parent: null
+  });
+
+  await newUser.save();
+
+  res.status(201).json({ message: 'Admin account created successfully' });
 };
