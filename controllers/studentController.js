@@ -1,4 +1,7 @@
 const { Student, Parent, Classroom } = require('../models/SchoolDb');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 
 // Get all students (with populated parent and classroom)
 exports.getAllStudents = async (req, res) => {
@@ -12,27 +15,11 @@ exports.getAllStudents = async (req, res) => {
   }
 };
 
-// Add a new student (assign parent by nationalId and class by classroomId)
-// npm install multer
-const multer = require('multer');
-const path = require('path');
 
-// Configure multer storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');  // save files in uploads folder
-  },
-  filename: function (req, file, cb) {
-    // Unique filename: timestamp + original extension
-    cb(null, Date.now() + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ storage: storage });
-
+// Basic multer setup (auto stores to 'uploads/' with random names)
+const upload = multer({ dest: 'uploads/' });
 exports.uploadStudentPhoto = upload.single('photo');
-
-
+// Add student and also the profile picture
 exports.addStudent = async (req, res) => {
   try {
     const { name, dateOfBirth, gender, admissionNumber, parentNationalId, classroomId } = req.body;
@@ -43,30 +30,42 @@ exports.addStudent = async (req, res) => {
       return res.status(400).json({ message: 'Parent with provided national ID not found' });
     }
 
-    // 2. Check that classroom exists
+    // 2. Check if admission number already exists
+    const student = await Student.findOne({ admissionNumber });
+    if (student) {
+      return res.status(400).json({ message: 'Admission No. has already been assigned to someone else' });
+    }
+
+    // 3. Check if classroom exists
     const classroom = await Classroom.findById(classroomId);
     if (!classroom) {
       return res.status(400).json({ message: 'Classroom not found' });
     }
 
-    // 3. Use the filename from multer if photo was uploaded
-    const photoFilename = req.file ? req.file.filename : null;
+    // 4. Handle uploaded photo (rename with timestamp + extension)
+    let photo = null;
+    if (req.file) {
+      const ext = path.extname(req.file.originalname);
+      const newFilename = Date.now() + ext;
+      const newPath = path.join('uploads', newFilename);
+      fs.renameSync(req.file.path, newPath);
+      photo = newPath.replace(/\\/g, '/');
+    }
 
-    // 4. Create student with references
+    // 5. Create and save the new student
     const newStudent = new Student({
       name,
       dateOfBirth,
       gender,
       admissionNumber,
-      photo: photoFilename,
+      photo,
       parent: parent._id,
       classroom: classroom._id
     });
 
-    // 5. Save student
     const savedStudent = await newStudent.save();
 
-    // 6. Add student to classroom
+    // 6. Add student to classroom if not already added
     if (!classroom.students.includes(savedStudent._id)) {
       classroom.students.push(savedStudent._id);
       await classroom.save();

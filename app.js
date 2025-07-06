@@ -16,6 +16,10 @@ app.use('/uploads', express.static('uploads'));
 const loginRoutes = require('./routes/login');
 app.use('/api/login', loginRoutes);
 
+// Import dashboard route and mount on /api/dashboardAdmin
+const dashboardAdminRoutes = require('./routes/dashboardAdmin');
+app.use('/api/dashboardAdmin', dashboardAdminRoutes);
+
 // Import student routes and mount on /api/students
 const studentRoutes = require('./routes/students');
 app.use('/api/students', studentRoutes);
@@ -35,6 +39,10 @@ app.use('/api/parents', parentsRoutes);
 // Import assignments routes and mount on /api/assignments
 const assignmentsRoutes = require('./routes/assignments');
 app.use('/api/assignments', assignmentsRoutes);
+
+// Import stats routes and mount on /api/stats
+const statsTeacher = require('./routes/statsTeacher');
+app.use('/api/teacher/stats', statsTeacher);
 
 // Connect to MongoDB using connection string in .env file
 mongoose.connect(process.env.MONGO_URI)

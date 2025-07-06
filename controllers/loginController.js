@@ -11,7 +11,7 @@ exports.login = async (req, res) => {
     // 1. Find the user by email
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(401).json({ message: 'Invalid Credentials...' });
     }
 
     // 2. Check if user is active
@@ -22,7 +22,7 @@ exports.login = async (req, res) => {
     // 3. Compare the provided password with the hashed password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid password' });
+      return res.status(401).json({ message: 'Invalid Credentials...' });
     }
 
     // 4. Generate JWT token (useful for real apps)
@@ -56,7 +56,7 @@ exports.registerAdmin = async (req, res) => {
 
   // 1. Verify developer's secret key
   if (secretKey !== process.env.ADMIN_SECRET_KEY) {
-    return res.status(403).json({ message: 'Unauthorized access' });
+    return res.status(403).json({ message: 'Unauthorized Account Creation' });
   }
 
   // 2. Check if user already exists
@@ -78,7 +78,7 @@ exports.registerAdmin = async (req, res) => {
     parent: null
   });
 
-  await newUser.save();
+  const user=await newUser.save();
 
-  res.status(201).json({ message: 'Admin account created successfully' });
+  res.status(201).json({ user, message: 'Admin account created successfully' });
 };

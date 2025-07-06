@@ -1,4 +1,4 @@
-const { Teacher, User } = require('../models/SchoolDb');
+const { Teacher, User,Classroom, Assignment } = require('../models/SchoolDb');
 const bcrypt = require('bcrypt');
 
 exports.getAllTeachers = async (req, res) => {
@@ -12,9 +12,14 @@ exports.getAllTeachers = async (req, res) => {
   }
 };
 
+
 exports.addTeacher = async (req, res) => {
   try {
     // Step 1: Create a new Teacher document with data from request body
+    const {email}=req.body
+    const existEmail=await Teacher.findOne({email})
+    if (existEmail) return res.status(404).json({message:"Teacher already exist"})
+
     const newTeacher = new Teacher(req.body);
     const savedTeacher = await newTeacher.save(); // Save teacher to DB
 
@@ -32,7 +37,7 @@ exports.addTeacher = async (req, res) => {
       email: savedTeacher.email,
       password: hashedPassword,
       role: 'teacher',
-      teacher: savedTeacher._id // Optional: link to the teacher document by ID
+      teacher: savedTeacher._id // link to the teacher document by ID
     });
 
     // Save the new User document
@@ -46,21 +51,29 @@ exports.addTeacher = async (req, res) => {
   }
 };
 
+
 exports.getTeacherById = async (req, res) => {
   try {
-    // Find a teacher by ID provided in the request params
-    const teacher = await Teacher.findById(req.params.id);
+    const userId = req.user.userId;
+    const user = await User.findById(userId).populate('teacher');
+    if (!user || !user.teacher) return res.status(404).json({ message: 'Teacher not foundf' });
 
-    // If teacher not found, send 404 response
-    if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+    const teacher = user.teacher;
+    const teacherId = teacher._id;
 
-    // Otherwise, return the teacher document as JSON
-    res.json(teacher);
+    const classrooms = await Classroom.find({ teacher: teacherId })
+      .populate('students', 'name admissionNumber');
+
+    const assignments = await Assignment.find({ postedBy: teacherId })
+      .populate('classroom', 'name');
+
+    res.json({ teacher, classrooms, assignments });
   } catch (err) {
-    // Handle errors during database access
-    res.status(500).json({ message: 'Error fetching teacher', error: err.message });
+    res.status(500).json({ message: 'Error fetching teacher dashboard data', error: err.message });
   }
 };
+
+
 
 exports.updateTeacher = async (req, res) => {
   try {
@@ -81,8 +94,9 @@ exports.updateTeacher = async (req, res) => {
 
 exports.deleteTeacher = async (req, res) => {
   try {
+    const teacherId = req.params.id;
     // Delete teacher by ID from request params
-    const deletedTeacher = await Teacher.findByIdAndDelete(req.params.id);
+    const deletedTeacher = await Teacher.findByIdAndDelete(teacherId);
 
     // If no teacher found, return 404
     if (!deletedTeacher) return res.status(404).json({ message: 'Teacher not found' });
@@ -90,10 +104,59 @@ exports.deleteTeacher = async (req, res) => {
     // Unassign this teacher from any classroom
     await Classroom.updateMany({ teacher: teacherId }, { $set: { teacher: null } });
 
+    // Delete the linked user
+    await User.findOneAndDelete({ teacher: teacherId });
+
     // Respond with success message after deletion
     res.json({ message: 'Teacher deleted successfully' });
   } catch (err) {
+    console.error('Error deleting teacher:', err); 
     // Handle errors during deletion
     res.status(500).json({ message: 'Error deleting teacher', error: err.message });
+  }
+};
+
+
+// ========================
+// CLASS-RELATED OPERATIONS 
+// ========================
+// Get only classes the teacher teaches
+exports.getMyClasses = async (req, res) => {
+  try {
+    // Get teacher ID from the logged-in user
+    const userId = req.user.userId;
+    
+    // Find the user and populate the 'teacher' reference
+    const user = await User.findById(userId).populate('teacher');
+
+    // Check if the user exists and is linked to a teacher
+    if (!user || !user.teacher) {
+      return res.status(404).json({ message: 'Teacher not found.' });
+    }
+
+    // Get all classrooms taught by this teacher, including the students
+    const classes = await Classroom.find({ teacher: user.teacher._id })
+      .populate('students'); // <-- This populates the students array
+
+    // Send the result
+    res.json(classes);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+exports.getMyAssignments = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const user = await User.findById(userId).populate('teacher');
+    
+    const assignments = await Assignment.find({ postedBy: user.teacher._id })
+      .populate('classroom') // Include classroom details
+      .sort({ dueDate: 1 });
+    console.log(assignments)
+    res.status(200).json({ assignments });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

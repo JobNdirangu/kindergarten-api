@@ -13,8 +13,8 @@ const userSchema = new Schema({
   parent: { type: mongoose.Schema.Types.ObjectId, ref: 'Parent', default: null }
 }, { timestamps: true });
   
-  // Teacher schema
-  const teacherSchema = new Schema({
+// Teacher schema
+const teacherSchema = new Schema({
   name: { type: String, required: true },
   email: { type: String},
   phone:{type:String},
