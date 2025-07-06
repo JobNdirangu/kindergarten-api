@@ -80,6 +80,7 @@ MONGO_URI=mongodb+srv://CbcUser:Ua8FjldbzsvbwL9n@cluster0.zhracze.mongodb.net/sc
 **File:** `controllers/loginController.js`
 
 ### Register an admin
+![alt text](image.png)
 
 ```http
 POST /api/login/admin_reg
@@ -116,7 +117,7 @@ POST /api/login/admin_reg
 ```http
 POST /api/login
 ```
-
+![alt text](image-1.png)
 **Request Body:**
 
 ```json
@@ -273,7 +274,13 @@ module.exports = { auth, authorizeRoles }
 
 ## Classroom Controller
 The classroom controller provides full CRUD operations for managing classrooms in the school system. It includes functionality to retrieve all classrooms with detailed teacher and student information, fetch a single classroom by ID, and populate associated teacher and student data. It also allows administrators to add new classrooms, update existing ones (such as changing the assigned teacher or class details), and delete classrooms from the system. The operations are built using Mongoose, and proper error handling ensures appropriate responses when classrooms are not found or when database operations fail.
+add class
+![alt text](image-2.png)
+get classes
+![alt text](image-3.png)
 
+get class
+![alt text](image-4.png)
 ```js
 const { Classroom } = require('../models/SchoolDb'); // Import relevant models
 

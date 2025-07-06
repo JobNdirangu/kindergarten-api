@@ -43,7 +43,7 @@ exports.getClassroomById = async (req, res) => {
     const classroom = await Classroom.findById(req.params.id)
       .populate('teacher', 'name email')                   // Populate teacher details
       .populate('students', 'name admissionNumber');       // Populate student details
-
+    console.log(classroom)
     // If classroom not found, return 404
     if (!classroom) return res.status(404).json({ message: 'Classroom not found' });
 
