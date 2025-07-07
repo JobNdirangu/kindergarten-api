@@ -410,7 +410,12 @@ app.use('/api/classrooms', classroomRoutes);
 ```
 ## Teacher Controller
 This teacher controller manages all operations related to teachers, including their creation, retrieval, update, deletion, and dashboard access. It supports registering a new teacher and automatically creates a corresponding user account with a default password and role set to "teacher". It also allows admins to fetch all teachers or a specific teacher by ID, along with their associated classrooms and assignments. Teachers can view their own classrooms and assignments based on their authenticated session. Additionally, when a teacher is deleted, the controller ensures cleanup by unassigning them from any classrooms and removing the linked user account. These operations are secured using middleware that extracts the teacher from the authenticated user context, ensuring role-based access.
-
+### add teacher
+![alt text](image-5.png)
+### get teachers
+![alt text](image-6.png)
+### put teacher
+![alt text](image-7.png)
 ```js
 const { Teacher, User,Classroom, Assignment } = require('../models/SchoolDb');
 const bcrypt = require('bcrypt');
@@ -996,4 +1001,150 @@ router.put('/:id', studentController.updateStudent);
 router.delete('/:id', studentController.deleteStudent);
 
 module.exports = router;
+```
+
+## Admin Dashboard
+This `getDashboardStats` function is an API controller for the admin dashboard. It fetches important statistics from the school system database to give the admin a quick overview. First, it counts the total number of students, teachers, parents, classrooms, and active users — all done in parallel using `Promise.all()` to improve performance. Then, it retrieves the five most recently added students and teachers, sorting them by their creation date in descending order. Finally, it returns all of this information as a single JSON response. If any part of the process fails, it sends a 500 error with a descriptive message. This function is useful for giving administrators a real-time summary of the system’s usage and recent activity.
+
+![alt text](image-8.png)
+
+```js
+const { Student, Teacher, Parent, Classroom, User } = require('../models/SchoolDb'); // Import all relevant models
+
+// ==============================
+// Get Dashboard Statistics
+// Returns total counts and recent records for admin dashboard
+// ==============================
+exports.getDashboardStats = async (req, res) => {
+  try {
+    // Run all count operations in parallel for better performance
+    const [
+      totalStudents,
+      totalTeachers,
+      totalParents,
+      totalClassrooms,
+      activeUsers
+    ] = await Promise.all([
+      Student.countDocuments(),                // Count all students
+      Teacher.countDocuments(),                // Count all teachers
+      Parent.countDocuments(),                 // Count all parents
+      Classroom.countDocuments(),              // Count all classrooms
+      User.countDocuments({ isActive: true })  // Count all active user accounts
+    ]);
+
+    // Get the 5 most recent students (sorted by newest)
+    const recentStudents = await Student.find()
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    // Get the 5 most recent teachers (sorted by newest)
+    const recentTeachers = await Teacher.find()
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    // Return all stats in a single response
+    res.json({
+      totalStudents,
+      totalTeachers,
+      totalParents,
+      totalClassrooms,
+      activeUsers,
+      recentStudents,
+      recentTeachers
+    });
+  } catch (err) {
+    // Return error message if anything fails
+    res.status(500).json({ message: 'Failed to load dashboard stats', error: err.message });
+  }
+};
+```
+## Teachers Dashboard
+```js
+const { User,Classroom, Assignment } = require('../models/SchoolDb');
+
+exports.getTeacherStats = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    // console.log(userId)
+
+    // Step 1: Get the teacher's ObjectId from User
+    const user = await User.findById(userId);
+    if (!user || !user.teacher) {
+      return res.status(404).json({ message: 'Teacher not found or not linked to user' });
+    }
+
+    const teacherId = user.teacher;
+
+    // Step 2: Aggregate classrooms to get class count and student total
+    const classStats = await Classroom.aggregate([
+      { $match: { teacher: teacherId } },
+      {
+        $group: {
+          _id: null,
+          totalClasses: { $sum: 1 },
+          totalStudents: { $sum: { $size: "$students" } }
+        }
+      }
+    ]);
+
+    // Step 3: Count assignments
+    const totalAssignments = await Assignment.countDocuments({ postedBy: teacherId });
+
+    // Prepare final response
+    const result = {
+      totalClasses: classStats[0]?.totalClasses || 0,
+      totalStudents: classStats[0]?.totalStudents || 0,
+      totalAssignments
+    };
+
+    res.json(result);
+  } catch (err) {
+    console.error('Error fetching teacher stats:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+```
+
+
+## Parents Dashboard
+```js
+const { User, Parent, Student, Assignment, Classroom } = require('../models/SchoolDb');
+
+// ================================
+// Get parent dashboard info (self)
+// ================================
+exports.getParentDashboard = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    // Find user and populate parent reference
+    const user = await User.findById(userId).populate('parent');
+    if (!user || !user.parent) {
+      return res.status(404).json({ message: 'Parent profile not found' });
+    }
+
+    const parent = user.parent;
+
+    // Get children (students) linked to this parent
+    const children = await Student.find({ parent: parent._id })
+      .populate('classroom', 'name gradeLevel classYear');
+
+    // Collect class IDs from children to fetch related assignments
+    const classroomIds = children
+      .map(child => child.classroom?._id)
+      .filter(id => id); // Exclude null/undefined classrooms
+
+    const assignments = await Assignment.find({ classroom: { $in: classroomIds } })
+      .populate('classroom', 'name gradeLevel')
+      .populate('postedBy', 'name');
+
+    res.json({
+      parent,
+      children,
+      assignments
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching parent dashboard', error: err.message });
+  }
+};
 ```

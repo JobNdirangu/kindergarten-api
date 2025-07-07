@@ -1,4 +1,4 @@
-const { Teacher, User,Classroom, Assignment } = require('../models/SchoolDb');
+const { User,Classroom, Assignment } = require('../models/SchoolDb');
 
 exports.getTeacherStats = async (req, res) => {
   try {

@@ -44,6 +44,10 @@ app.use('/api/assignments', assignmentsRoutes);
 const statsTeacher = require('./routes/statsTeacher');
 app.use('/api/teacher/stats', statsTeacher);
 
+// Import dashboard routes 
+const dashboardParent = require('./routes/dashboardParent');
+app.use('/api/parent/dashboard', dashboardParent);
+
 // Connect to MongoDB using connection string in .env file
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
