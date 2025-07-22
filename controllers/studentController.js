@@ -65,11 +65,11 @@ exports.addStudent = async (req, res) => {
 
     const savedStudent = await newStudent.save();
 
-    // 6. Add student to classroom if not already added
-    if (!classroom.students.includes(savedStudent._id)) {
-      classroom.students.push(savedStudent._id);
-      await classroom.save();
-    }
+    // 6. Add student to classroom using $addToSet to avoid duplicates
+    await Classroom.findByIdAndUpdate(
+      classroom._id,
+      { $addToSet: { students: savedStudent._id } }
+    );
 
     res.status(201).json(savedStudent);
   } catch (err) {
@@ -107,6 +107,12 @@ exports.deleteStudent = async (req, res) => {
   try {
     const deletedStudent = await Student.findByIdAndDelete(req.params.id);
     if (!deletedStudent) return res.status(404).json({ message: 'Student not found' });
+
+    // Remove student from any classrooms
+    await Classroom.updateMany(
+      { students: deletedStudent._id },
+      { $pull: { students: deletedStudent._id } }
+    );
     res.json({ message: 'Student deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: 'Error deleting student', error: err.message });
