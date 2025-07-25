@@ -17,23 +17,30 @@ exports.getParentDashboard = async (req, res) => {
 
     // Get children (students) linked to this parent
     const children = await Student.find({ parent: parent._id })
-      .populate('classroom', 'name gradeLevel classYear');
-
-    // Collect class IDs from children to fetch related assignments
-    const classroomIds = children
-      .map(child => child.classroom?._id)
-      .filter(id => id); // Exclude null/undefined classrooms
-
-    const assignments = await Assignment.find({ classroom: { $in: classroomIds } })
-      .populate('classroom', 'name gradeLevel')
-      .populate('postedBy', 'name');
+      .populate('classroom');
 
     res.json({
       parent,
       children,
-      assignments
     });
   } catch (err) {
     res.status(500).json({ message: 'Error fetching parent dashboard', error: err.message });
   }
 };
+
+exports.getClassAssignments = async (req, res) => {
+  try {
+    const classId = req.params.classId;
+
+    // Fetch assignments posted to that class, with teacher details
+    const assignments = await Assignment.find({ classroom: classId })
+      .populate('postedBy')
+      .sort({ dueDate: 1 }); // Optional: sort by nearest due date
+
+    res.json(assignments);
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
